@@ -1,10 +1,16 @@
+from avro.io import Validate, AvroTypeException
 
 
 class AvroComplexModel(object):
   __schema__ = None
 
   def __init__(self, value):
-    self._value = value
+    if isinstance(value, self.__class__):
+      self._value = value._value
+    else:
+      if not Validate(self.__schema__, value):
+        raise AvroTypeException(self.__schema__, value)
+      self._value = value
 
   def __str__(self):
     return str(self._value)
@@ -37,96 +43,61 @@ class RecordAvroModel(AvroComplexModel):
   def get_fields(cls):
     return cls.__schema__.fields
 
+  def __getattr__(self, attr):
+    field = self.__schema__.field_map[attr]
+    item_class = get_avro_model(field.type)
+    return item_class(self._value[attr])
+
+  def __setattr__(self, attr, value):
+    field = self.__schema__.field_map[attr]
+    item_class = get_avro_model(field.type)
+    item = item_class(value)
+    self._value[attr] = item._value
+
 
 class ContainerAvroModel(AvroComplexModel):
-  def __init__(self, value):
-    item_class = self.get_container_class()
-    self._value = self._new_instance(value, item_class)
 
-  @staticmethod
-  def _get_container_schema(schema):
+  @classmethod
+  def _get_contained_schema(cls, schema):
     raise NotImplementedError
 
   @classmethod
-  def _new_instance(cls, value, item_class):
-    raise NotImplementedError
+  def get_contained_class(cls):
+    return get_avro_model(cls._get_contained_schema(cls.__schema__))
 
-  @classmethod
-  def get_container_class(cls):
-    return get_avro_model(cls._get_container_schema(cls.__schema__))
+  def __len__(self):
+    return len(self._value)
+
+  def __iter__(self):
+    return iter(self._value)
+
+  def __getitem__(self, key):
+    item_class = self.get_contained_class()
+    return item_class(self._value[key])
+
+  def __setitem__(self, key, value):
+    item_class = self.get_contained_class()
+    item = item_class(self._value[key])
+    self._value[key] = item._value
 
 
 class ArrayAvroModel(ContainerAvroModel):
 
   @staticmethod
-  def _get_container_schema(schema):
+  def _get_contained_schema(schema):
     return schema.items
-
-  @classmethod
-  def _new_instance(cls, value, item_class):
-    return [item_class(x) for x in value]
-
-  def __getattr__(self, attr):
-    return getattr(self._value, attr)
-
-  def __len__(self):
-    return len(self._value)
-
-  def __iter__(self):
-    return iter(self._value)
-
-  def __getitem__(self, key):
-    return self._value[key]
-
-  def __setitem__(self, key, value):
-    self._value[key] = self.get_container_class()(value)
 
 
 class MapAvroModel(ContainerAvroModel):
 
   @staticmethod
-  def _get_container_schema(schema):
+  def _get_contained_schema(schema):
     return schema.values
 
-  @classmethod
-  def _new_instance(cls, value, item_class):
-    return {k: item_class(v) for k, v in value.items()}
 
-  @classmethod
-  def get_container_class(cls):
-    return get_avro_model(cls._get_container_schema(cls.__schema__))
-
-  def __len__(self):
-    return len(self._value)
-
-  def __iter__(self):
-    return iter(self._value)
-
-  def __getitem__(self, key):
-    return self._value[key]
-
-  def __setitem__(self, key, value):
-    self._value[key] = self.get_container_class()(value)
-
-
-class UnionAvroModel(ContainerAvroModel):
-  @staticmethod
-  def _get_container_schema(schema):
-    return schema.schemas
-
-  @classmethod
-  def get_container_class(cls):
-    return [get_avro_model(schema) for schema in cls._get_container_schema(cls.__schema__)]
-
-  @classmethod
-  def _new_instance(cls, value, union_classes):
-    for item_class in union_classes:
-      try:
-        return item_class(value)
-      except:
-        pass
-    raise ValueError("No matching data type is found. Expecting {}".format(
-        cls.__schema__.to_json()))
+class UnionAvroModel(AvroComplexModel):
+  __name__ = "Union"
+  __qualname__ = "Union"
 
 
 def get_null(value):
@@ -157,27 +128,15 @@ NAMED_SCHEMA_MAP = {
 OTHER_SCHEMA_MAP = {
     "array": ArrayAvroModel,
     "map": MapAvroModel,
-    'union': UnionAvroModel
+    "union": UnionAvroModel
 }
 
 
-def get_avro_model(schema):
-  """
-  Generate Avro data model for a schema
+def get_union_schema_model(schema):
+  class VirtualClass(UnionAvroModel):
+    __schema__ = schema
 
-  Args:
-    schema: input schema as avrol.schema.Schema
-
-  Returns:
-    Avro data model constructor
-  """
-  schema_type = schema.type
-  if schema_type in PRIMITIVE_SCHEMA_MAP:
-    return PRIMITIVE_SCHEMA_MAP[schema_type]
-  if schema_type in NAMED_SCHEMA_MAP:
-    return get_named_schema_model(schema)
-  if schema_type in OTHER_SCHEMA_MAP:
-    return get_other_schema_model(schema)
+  return VirtualClass
 
 
 def get_named_schema_model(schema):
@@ -200,7 +159,7 @@ def get_named_schema_model(schema):
 
 def get_other_schema_model(schema):
   base_class = OTHER_SCHEMA_MAP[schema.type]
-  class_name = "{}<{}>".format(schema.type, base_class._get_container_schema(schema).fullname)
+  class_name = "{}<{}>".format(schema.type, base_class._get_contained_schema(schema).fullname)
 
   class VirtualClass(base_class):
     __schema__ = schema
@@ -208,3 +167,24 @@ def get_other_schema_model(schema):
     __qualname__ = class_name
 
   return VirtualClass
+
+
+def get_avro_model(schema):
+  """
+  Generate Avro data model for a schema
+
+  Args:
+    schema: input schema as avrol.schema.Schema
+
+  Returns:
+    Avro data model constructor
+  """
+  schema_type = schema.type
+  if schema_type in PRIMITIVE_SCHEMA_MAP:
+    return PRIMITIVE_SCHEMA_MAP[schema_type]
+  if schema_type == 'union':
+    return get_union_schema_model(schema)
+  if schema_type in NAMED_SCHEMA_MAP:
+    return get_named_schema_model(schema)
+  if schema_type in OTHER_SCHEMA_MAP:
+    return get_other_schema_model(schema)
