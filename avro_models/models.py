@@ -1,16 +1,19 @@
+import json
+
 from avro.io import Validate, AvroTypeException
 
 
 class AvroComplexModel(object):
   __schema__ = None
+  _names = None
 
   def __init__(self, value):
     if isinstance(value, self.__class__):
-      self._value = value._value
+      super().__setattr__("_value", value._value)
     else:
-      if not Validate(self.__schema__, value):
+      if not self.validate(value):
         raise AvroTypeException(self.__schema__, value)
-      self._value = value
+      super().__setattr__("_value", value)
 
   def __str__(self):
     return str(self._value)
@@ -21,9 +24,18 @@ class AvroComplexModel(object):
   def __eq__(self, other):
     return self._value == other._value
 
+  def validate(self, data):
+    return Validate(self.__schema__, data)
+
   @classmethod
   def get_schema(cls):
     return cls.__schema__
+
+  def to_dict(self):
+    return self._value
+
+  def json_dumps(self):
+    return json.dumps(self._value)
 
 
 class EnumAvroModel(AvroComplexModel):
@@ -45,12 +57,12 @@ class RecordAvroModel(AvroComplexModel):
 
   def __getattr__(self, attr):
     field = self.__schema__.field_map[attr]
-    item_class = get_avro_model(field.type)
+    item_class = get_avro_model(field.type, self._names)
     return item_class(self._value[attr])
 
   def __setattr__(self, attr, value):
     field = self.__schema__.field_map[attr]
-    item_class = get_avro_model(field.type)
+    item_class = get_avro_model(field.type, self._names)
     item = item_class(value)
     self._value[attr] = item._value
 
@@ -63,7 +75,7 @@ class ContainerAvroModel(AvroComplexModel):
 
   @classmethod
   def get_contained_class(cls):
-    return get_avro_model(cls._get_contained_schema(cls.__schema__))
+    return get_avro_model(cls._get_contained_schema(cls.__schema__), cls._names)
 
   def __len__(self):
     return len(self._value)
@@ -169,16 +181,18 @@ def get_other_schema_model(schema):
   return VirtualClass
 
 
-def get_avro_model(schema):
+def get_avro_model(schema, names=None):
   """
   Generate Avro data model for a schema
 
   Args:
-    schema: input schema as avrol.schema.Schema
+    schema: input schema as avro.schema.Schema
 
   Returns:
     Avro data model constructor
   """
+  if names is not None and names.has_schema(schema.fullname):
+    return names.get_avro_model(schema.fullname)
   schema_type = schema.type
   if schema_type in PRIMITIVE_SCHEMA_MAP:
     return PRIMITIVE_SCHEMA_MAP[schema_type]

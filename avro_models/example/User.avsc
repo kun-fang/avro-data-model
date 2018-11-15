@@ -1,0 +1,31 @@
+{
+  "namespace": "example.avro",
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {
+      "name": "lastName",
+      "type": "string"
+    },
+    {
+      "name": "firstName",
+      "type": "string"
+    },
+    {
+      "name": "occupation",
+      "type": "example.avro.Occupation"
+    },
+    {
+      "name": "birthday",
+      "type": "example.avro.Date"
+    },
+    {
+      "name": "favorite_number",
+      "type": ["null", "int"]
+    },
+    {
+      "name": "favorite_color",
+      "type": ["string", "null"]
+    }
+  ]
+}

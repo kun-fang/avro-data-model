@@ -1,0 +1,6 @@
+{
+  "name": "Occupation",
+  "type": "enum",
+  "namespace": "example.avro",
+  "symbols": ["STUDENT", "ENGINEER", "TEACHER", "SCIENCE"]
+}
