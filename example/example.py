@@ -23,9 +23,9 @@ if __name__ == '__main__':
       }
   }
   user = User(data)
-  print(user.__class__.__mro__)
+
+  print(user.fullname())
   print(repr(user))
-  print(user.fullname)
   print(user.json_dumps())
 
   user.birthday = date

@@ -3,7 +3,7 @@ import json
 from io import IOBase
 from six import string_types
 
-from avro_models.models import get_avro_model
+from avro_models.models import create_data_model
 
 
 class AvroDataNames(Names):
@@ -11,9 +11,10 @@ class AvroDataNames(Names):
     super(AvroDataNames, self).__init__(default_namespace=default_namespace)
     self._schema_map = {}
 
-  def Register(self, schema):
-    super(AvroDataNames, self).Register(schema)
-    self._schema_map[schema.fullname] = get_avro_model(schema, self)
+  def register_model(self, schema, wrapper_cls):
+    model_cls = create_data_model(schema, wrapper_cls, self)
+    self._schema_map[schema.fullname] = model_cls
+    return model_cls
 
   def get_avro_model(self, schema_full_name):
     return self._schema_map[schema_full_name]
@@ -45,7 +46,5 @@ def avro_schema(names, **kwargs):
 
   def wrapper(cls):
     schema = SchemaFromJSONData(schema_json, names)
-    avro_model_class = names.get_avro_model(schema.fullname)
-    wrapper_class = type(cls.__qualname__, (cls, avro_model_class), {"_names": names})
-    return wrapper_class
+    return names.register_model(schema, cls)
   return wrapper

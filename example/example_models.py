@@ -19,7 +19,6 @@ class Date(object):
       }
     super().__init__(value)
 
-  @property
   def date(self):
     return datetime.date(self.year, self.month, self.day)
 
@@ -29,7 +28,7 @@ class Date(object):
         and datetime.date(data['year'], data['month'], data['day'])
 
   def __str__(self):
-    return str(self.date)
+    return str(self.date())
 
 
 @avro_schema(EXAMPLE_NAMES, schema_file=os.path.join(DIRNAME, "Occupation.avsc"))
@@ -39,9 +38,8 @@ class Occupation(object):
 
 @avro_schema(EXAMPLE_NAMES, schema_file=os.path.join(DIRNAME, "User.avsc"))
 class User(object):
-  @property
   def fullname(self):
     return "{} {}".format(self.firstName, self.lastName)
 
   def __repr__(self):
-    return "User({})".format(self.fullname)
+    return "User({})".format(self.fullname())

@@ -1,6 +1,7 @@
 import json
 
 from avro.io import Validate, AvroTypeException
+from avro.schema import AvroException
 
 
 class AvroComplexModel(object):
@@ -57,12 +58,12 @@ class RecordAvroModel(AvroComplexModel):
 
   def __getattr__(self, attr):
     field = self.__schema__.field_map[attr]
-    item_class = get_avro_model(field.type, self._names)
+    item_class = find_avro_model(field.type, self._names)
     return item_class(self._value[attr])
 
   def __setattr__(self, attr, value):
     field = self.__schema__.field_map[attr]
-    item_class = get_avro_model(field.type, self._names)
+    item_class = find_avro_model(field.type, self._names)
     item = item_class(value)
     self._value[attr] = item._value
 
@@ -75,7 +76,7 @@ class ContainerAvroModel(AvroComplexModel):
 
   @classmethod
   def get_contained_class(cls):
-    return get_avro_model(cls._get_contained_schema(cls.__schema__), cls._names)
+    return find_avro_model(cls._get_contained_schema(cls.__schema__), cls._names)
 
   def __len__(self):
     return len(self._value)
@@ -144,14 +145,14 @@ OTHER_SCHEMA_MAP = {
 }
 
 
-def get_union_schema_model(schema):
-  class VirtualClass(UnionAvroModel):
-    __schema__ = schema
+def get_union_schema_model(wrapper_cls, schema, names):
+  return type(wrapper_cls.__qualname__, (wrapper_cls, UnionAvroModel), {
+      "_names": names,
+      "__schema__": schema
+  })
 
-  return VirtualClass
 
-
-def get_named_schema_model(schema):
+def get_named_schema_model(wrapper_cls, schema, names):
   """
   Get extended model class for the named schema
 
@@ -161,27 +162,40 @@ def get_named_schema_model(schema):
   Returns:
     Extended Avro named schema data model
   """
-  class VirtualClass(NAMED_SCHEMA_MAP[schema.type]):
-    __schema__ = schema
-    __name__ = schema.name
-    __qualname__ = schema.name
+  return type(wrapper_cls.__qualname__, (wrapper_cls, NAMED_SCHEMA_MAP[schema.type]), {
+      "_names": names,
+      "__schema__": schema,
+      "__qualname__": schema.name,
+      "__name__": schema.name
+  })
 
-  return VirtualClass
 
-
-def get_other_schema_model(schema):
+def get_other_schema_model(wrapper_cls, schema, names):
   base_class = OTHER_SCHEMA_MAP[schema.type]
   class_name = "{}<{}>".format(schema.type, base_class._get_contained_schema(schema).fullname)
 
-  class VirtualClass(base_class):
-    __schema__ = schema
-    __name__ = class_name
-    __qualname__ = class_name
+  return type(wrapper_cls.__qualname__, (wrapper_cls, base_class), {
+      "_names": names,
+      "__schema__": schema,
+      "__qualname__": class_name,
+      "__name__": class_name
+  })
 
-  return VirtualClass
+
+def create_data_model(schema, wrapper_cls, names):
+  schema_type = schema.type
+  if schema_type in PRIMITIVE_SCHEMA_MAP:
+    return PRIMITIVE_SCHEMA_MAP[schema_type]
+  if schema_type == 'union':
+    return get_union_schema_model(wrapper_cls, schema, names)
+  if schema_type in NAMED_SCHEMA_MAP:
+    return get_named_schema_model(wrapper_cls, schema, names)
+  if schema_type in OTHER_SCHEMA_MAP:
+    return get_other_schema_model(wrapper_cls, schema, names)
+  raise AvroException("Unsupported Schema: " + schema)
 
 
-def get_avro_model(schema, names=None):
+def find_avro_model(schema, names):
   """
   Generate Avro data model for a schema
 
@@ -191,14 +205,9 @@ def get_avro_model(schema, names=None):
   Returns:
     Avro data model constructor
   """
-  if names is not None and names.has_schema(schema.fullname):
+  if names.has_schema(schema.fullname):
     return names.get_avro_model(schema.fullname)
-  schema_type = schema.type
-  if schema_type in PRIMITIVE_SCHEMA_MAP:
-    return PRIMITIVE_SCHEMA_MAP[schema_type]
-  if schema_type == 'union':
-    return get_union_schema_model(schema)
-  if schema_type in NAMED_SCHEMA_MAP:
-    return get_named_schema_model(schema)
-  if schema_type in OTHER_SCHEMA_MAP:
-    return get_other_schema_model(schema)
+  elif schema.type in PRIMITIVE_SCHEMA_MAP:
+    return PRIMITIVE_SCHEMA_MAP[schema.type]
+  else:
+    return None
