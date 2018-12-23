@@ -6,9 +6,9 @@ from six import string_types
 from avro_models.models import create_data_model
 
 
-class AvroDataNames(Names):
+class AvroModelContainer(Names):
   def __init__(self, default_namespace=None):
-    super(AvroDataNames, self).__init__(default_namespace=default_namespace)
+    super(AvroModelContainer, self).__init__(default_namespace=default_namespace)
     self._schema_map = {}
 
   def register_model(self, schema, wrapper_cls):
@@ -29,22 +29,22 @@ class AvroDataNames(Names):
 def import_schema(schema_json=None, schema_file=None):
   if schema_json:
     if isinstance(schema_json, string_types):
-      schema_json = json.loads(schema_json)
+      return json.loads(schema_json)
   elif schema_file:
     if isinstance(schema_file, string_types):
       with open(schema_file, "rb") as f:
-        schema_json = json.load(f)
+        return json.load(f)
     if isinstance(schema_file, IOBase):
-      schema_json = json.loads(schema_file.read())
-  if isinstance(schema_json, dict):
-    return schema_json
+      return json.loads(schema_file.read())
+    if isinstance(schema_json, dict):
+      return schema_json
   raise AvroException("invalid input schema")
 
 
-def avro_schema(names, **kwargs):
+def avro_schema(container, **kwargs):
   schema_json = import_schema(**kwargs)
 
   def wrapper(cls):
-    schema = SchemaFromJSONData(schema_json, names)
-    return names.register_model(schema, cls)
+    schema = SchemaFromJSONData(schema_json, container)
+    return container.register_model(schema, cls)
   return wrapper

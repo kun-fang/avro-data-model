@@ -64,9 +64,9 @@ In some use cases, some extra validation is required, for example:
   ]
 }
 ```
-The _month_ and _day_ of a date cannot be arbitrary integers. A extra validation can be done as following:
+The `month` and `day` of a date cannot be arbitrary integers. A extra validation can be done as following:
 ```
-@avro_schema(EXAMPLE_NAMES, schema_file=os.path.join(DIRNAME, "Date.avsc"))
+@avro_schema(AvroDataNames(default_namespace="example.avro"), schema_file="Date.avsc")
 class Date(object):
   def __init__(self, value):
     if isinstance(value, datetime.date):

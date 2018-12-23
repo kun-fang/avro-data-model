@@ -1,10 +1,10 @@
 import datetime
 import os
 
-from avro_models.core import avro_schema, AvroDataNames
+from avro_models.core import avro_schema, AvroModelContainer
 
 
-EXAMPLE_NAMES = AvroDataNames(default_namespace="example.avro")
+EXAMPLE_NAMES = AvroModelContainer(default_namespace="example.avro")
 DIRNAME = os.path.dirname(os.path.realpath(__file__))
 
 
