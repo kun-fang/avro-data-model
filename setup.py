@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="avro_models",
-    version="0.0.2",
+    version="0.0.3",
     author="Kun Fang",
     author_email="kfang_anqing@yahoo.com",
     description="Object-relational mapping for AVRO schema",
@@ -20,6 +20,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    keywords="avro avro-schema orm python3 avro-data data-models",
     install_requires=[
         "avro-python3>=1.8.2"
     ]
