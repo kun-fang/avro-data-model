@@ -1,7 +1,7 @@
 import datetime
 import os
 
-from avro_models.core import avro_schema, AvroModelContainer
+from avro_models import avro_schema, AvroModelContainer
 
 
 EXAMPLE_NAMES = AvroModelContainer(default_namespace="example.avro")

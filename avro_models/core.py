@@ -3,7 +3,7 @@ import json
 from io import IOBase
 from six import string_types
 
-from avro_models.models import create_data_model
+from .models import create_data_model
 
 
 class AvroModelContainer(Names):
