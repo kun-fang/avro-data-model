@@ -211,9 +211,9 @@ def find_avro_model(schema, names):
     Returns:
       Avro data model constructor
     """
-    if names.has_schema(schema.fullname):
-        return names.get_avro_model(schema.fullname)
-    elif schema.type in PRIMITIVE_SCHEMA_MAP:
+    if schema.type in PRIMITIVE_SCHEMA_MAP:
         return PRIMITIVE_SCHEMA_MAP[schema.type]
+    elif names.has_schema(schema.fullname):
+        return names.get_avro_model(schema.fullname)
     else:
         return None

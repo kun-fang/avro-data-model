@@ -22,6 +22,7 @@ setup(
     ],
     keywords="avro avro-schema orm python3 avro-data data-models",
     install_requires=[
-        "avro-python3>=1.8.2"
+        "avro-python3>=1.8.2",
+        "six>=1.11.0"
     ]
 )

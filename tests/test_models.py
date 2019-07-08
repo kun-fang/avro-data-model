@@ -1,9 +1,15 @@
 from avro.schema import SchemaFromJSONData
 import pytest
+from unittest import mock
 
 from avro_models import core
 from avro_models import models
 
+
+TEST_INT_SCHEMA = {
+    "name": "Int",
+    "type": "int"
+}
 
 TEST_RECORD_SCHEMA = {
     "name": "TestRecord",
@@ -100,3 +106,16 @@ def test_fixed_schema():
     schema = SchemaFromJSONData(TEST_FIXED_SCHEMA)
     data_cls = models.create_data_model(schema, WrapperClass, names)
     assert data_cls.get_size() == TEST_FIXED_SCHEMA['size']
+
+
+@pytest.mark.parametrize("schema_json, has_schema, model", [
+    (TEST_RECORD_SCHEMA, True, models.RecordAvroModel),
+    (TEST_RECORD_SCHEMA, False, None),
+    (TEST_INT_SCHEMA, True, int)
+])
+def test_find_avro_model(schema_json, has_schema, model):
+    with mock.patch("avro_models.core.AvroModelContainer") as mock_container:
+        mock_container.return_value.has_schema.return_value = has_schema
+        mock_container.return_value.get_avro_model.return_value = model
+        schema = SchemaFromJSONData(schema_json)
+        assert models.find_avro_model(schema, core.AvroModelContainer()) == model
