@@ -10,6 +10,7 @@ from avro_models import models
 
 TEST_SCHEMA = {
     "name": "Date",
+    "namespace": "test",
     "type": "record",
     "fields": [
         {
@@ -37,8 +38,11 @@ class WrapperClass(object):
     (TEST_SCHEMA_STRING, TEST_FILE_PATH, TEST_SCHEMA_STRING),
 ])
 def test_import_schema(schema_json, schema_file, expected):
+    container = core.AvroModelContainer()
     with mock.patch("avro_models.core.open", return_value=StringIO(TEST_SCHEMA_FILE_CONTENT)):
-        assert json.dumps(core.import_schema(schema_json, schema_file)) == expected
+        assert json.dumps(
+            core.import_schema(container, schema_json=schema_json, schema_file=schema_file)
+        ) == expected
 
 
 def test_import_schema_exception():
@@ -54,6 +58,8 @@ def test_import_schema_exception():
 def test_avro_schema_decorator(mock_open, mock_container, mock_schema, mock_schema_from_json_data):
     mock_schema_from_json_data.return_value = mock_schema
     mock_container.return_value.register_model.return_value = TEST_OUTPUT_CLASS
+    mock_container.return_value.GetSchema.return_value.to_json.side_effect = [
+        None, TEST_SCHEMA, TEST_SCHEMA, TEST_SCHEMA]
     container = core.AvroModelContainer()
     assert core.avro_schema(
         container, schema_file=TEST_FILE_PATH
@@ -61,6 +67,10 @@ def test_avro_schema_decorator(mock_open, mock_container, mock_schema, mock_sche
     assert mock_schema_from_json_data.call_count, 1
     core.avro_schema(
         container, schema_file=TEST_FILE_PATH
+    )(models.AvroComplexModel)
+    assert mock_schema_from_json_data.call_count, 1
+    core.avro_schema(
+        container, full_name="test.Date"
     )(models.AvroComplexModel)
     assert mock_schema_from_json_data.call_count, 1
 

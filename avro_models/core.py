@@ -28,7 +28,9 @@ class AvroModelContainer(Names):
         return str(self._schema_map)
 
 
-def import_schema(schema_json=None, schema_file=None):
+def import_schema(container, full_name=None, schema_json=None, schema_file=None):
+    if full_name:
+      return dict(container.GetSchema(full_name).to_json())
     if schema_json:
         if isinstance(schema_json, string_types):
             return json.loads(schema_json)
@@ -44,13 +46,12 @@ def import_schema(schema_json=None, schema_file=None):
 
 
 def avro_schema(container, **kwargs):
-    schema_json = import_schema(**kwargs)
-    fullname = get_full_name(schema_json)
+    schema_json = import_schema(container, **kwargs)
 
     def wrapper(cls):
-        existing_schema = container.GetSchema(fullname)
-        print(schema_json, "1", existing_schema)
-        if existing_schema is not None and is_equal(dict(existing_schema.to_json()), schema_json):
+        existing_schema = (container.GetSchema(get_full_name(schema_json)).to_json()
+                           if isinstance(schema_json, dict) else None)
+        if existing_schema is not None and is_equal(dict(existing_schema), schema_json):
             schema = existing_schema
         else:
             schema = SchemaFromJSONData(schema_json, container)
