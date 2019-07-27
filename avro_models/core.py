@@ -4,6 +4,7 @@ from io import IOBase
 from six import string_types
 
 from .models import create_data_model
+from .utils import is_equal, get_full_name
 
 
 class AvroModelContainer(Names):
@@ -31,21 +32,27 @@ def import_schema(schema_json=None, schema_file=None):
     if schema_json:
         if isinstance(schema_json, string_types):
             return json.loads(schema_json)
+        if isinstance(schema_json, dict):
+            return schema_json
     elif schema_file:
         if isinstance(schema_file, string_types):
             with open(schema_file, "rb") as f:
                 return json.load(f)
         if isinstance(schema_file, IOBase):
             return json.loads(schema_file.read())
-        if isinstance(schema_json, dict):
-            return schema_json
     raise AvroException("invalid input schema")
 
 
 def avro_schema(container, **kwargs):
     schema_json = import_schema(**kwargs)
+    fullname = get_full_name(schema_json)
 
     def wrapper(cls):
-        schema = SchemaFromJSONData(schema_json, container)
+        existing_schema = container.GetSchema(fullname)
+        print(schema_json, "1", existing_schema)
+        if existing_schema is not None and is_equal(dict(existing_schema.to_json()), schema_json):
+            schema = existing_schema
+        else:
+            schema = SchemaFromJSONData(schema_json, container)
         return container.register_model(schema, cls)
     return wrapper
