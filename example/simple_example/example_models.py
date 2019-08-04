@@ -49,3 +49,15 @@ class User(object):
 
     def __repr__(self):
         return "User({})".format(self.fullname())
+
+
+@avro_schema(
+    EXAMPLE_NAMES,
+    schema_file=os.path.join(DIRNAME, "Employee.avsc"))
+class Employee(object):
+    pass
+
+
+@avro_schema(EXAMPLE_NAMES, full_name="com.test.Name")
+class Name(object):
+    pass

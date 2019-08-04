@@ -1,0 +1,29 @@
+{
+  "type": "record",
+  "name": "Employee",
+  "namespace": "com.test",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "name",
+      "type": {
+        "type": "record",
+        "name": "Name",
+        "namespace": "com.test",
+        "fields": [
+          {
+            "name": "lastName",
+            "type": "string"
+          },
+          {
+            "name": "firstName",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}

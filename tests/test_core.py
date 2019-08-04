@@ -1,4 +1,4 @@
-from avro.schema import SchemaFromJSONData
+from avro.schema import SchemaFromJSONData, Parse
 from io import StringIO
 import json
 import pytest
@@ -24,6 +24,7 @@ TEST_FILE_PATH = "/tmp/test/file"
 TEST_SCHEMA_FILE_CONTENT = json.dumps(TEST_SCHEMA)
 TEST_CLASS_NAME = "TestClass"
 TEST_OUTPUT_CLASS = type(TEST_CLASS_NAME, (models.AvroComplexModel,), {})
+TEST_AVRO_SCHEMA = Parse(TEST_SCHEMA_FILE_CONTENT)
 
 
 class WrapperClass(object):
@@ -53,13 +54,13 @@ def test_import_schema_exception():
 @mock.patch("avro.schema.SchemaFromJSONData")
 @mock.patch("avro.schema.Schema")
 @mock.patch("avro_models.core.AvroModelContainer")
-@mock.patch("avro_models.core.open",
-            side_effect=[StringIO(TEST_SCHEMA_FILE_CONTENT), StringIO(TEST_SCHEMA_FILE_CONTENT)])
+@mock.patch("avro_models.core.open")
 def test_avro_schema_decorator(mock_open, mock_container, mock_schema, mock_schema_from_json_data):
+    mock_open.side_effect = [StringIO(TEST_SCHEMA_FILE_CONTENT), StringIO(TEST_SCHEMA_FILE_CONTENT)]
     mock_schema_from_json_data.return_value = mock_schema
     mock_container.return_value.register_model.return_value = TEST_OUTPUT_CLASS
-    mock_container.return_value.GetSchema.return_value.to_json.side_effect = [
-        None, TEST_SCHEMA, TEST_SCHEMA, TEST_SCHEMA]
+    mock_container.return_value.GetSchema.side_effect = [
+        None, TEST_AVRO_SCHEMA, TEST_AVRO_SCHEMA, TEST_AVRO_SCHEMA]
     container = core.AvroModelContainer()
     assert core.avro_schema(
         container, schema_file=TEST_FILE_PATH

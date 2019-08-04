@@ -2,18 +2,17 @@ Avro Data Model
 =====
 
 ## Introduction
-[Apache Avro](http://avro.apache.org/) is a data serialization framework. It has been widely used in data serialization (especially in Hadoop ecosystem) and RPC protocols. It has libraries to support many languages. The library supports code generation with static languages like Java, while for dynamic languages for example python, code generation is not necessary.
+[Apache Avro](http://avro.apache.org/) is a data serialization framework. It is used in data serialization (especially in Hadoop ecosystem) and RPC protocols. It has libraries to support many languages. The library supports code generation with static languages like Java, while for dynamic languages for example python, code generation is not necessary.
 
-Avro schemas are also widely used in big data and streaming systems. When avro data is deserialized in Python environment, it was stored as a dictionary in memory. It looses all the interesting features provided by the avro schema, for example, you can modify an integer field with a string without getting any errors. It also doesn't provide any nice features from a normal class, for example, if an avro schema has `firstName` and `lastName` fields, it is not easy to define a function call to provide `fullName`.
+When avro data is deserialized in Python environment, it was stored as a dictionary in memory. As a dictionary, it looses all the interesting features provided by the avro schema. For example, you can modify an integer field with a string without getting any errors. As a dictionary, it also doesn't provide any nice features from a normal class, for example, if an avro schema has `firstName` and `lastName` fields, it is not easy to define a `fullName` function to generate the full name.
 
 ## Use Cases of the Library
-The reason I decided to develop this library is in use cases such as stream processing and RPC protocols, strict data types are required to make sure the system runs correctly. Although avro schema is introduced for this purpose, in Python, it is converted to a dictionary for in memory processing, which doesn't guarantee types and also doesn't provide class hierarchy. I am looking to develop a way so that a class can be build on top of an avro schema, so that it can keep correct data type and also has a class structure.
+In stream processing and RPC protocols, strict data types are required to make sure the system runs correctly. In Python, avro data is converted to a dictionary, which doesn't guarantee types and also doesn't provide a custom class hierarchy. I am looking to develop a way so that a class can be build on top of an avro schema, so that it can keep correct data type and also has a class structure.
 
-My solution is similar to what [SQLAlchemy ORM](https://www.sqlalchemy.org) does. Instead of manually defining all the fields of a SQL table in SQLAlchemy, schema definition is done through avro schema. The class allows method definitions of other properties or other validations. Please check the following examples for how to use the library.
+My solution is similar to what [SQLAlchemy ORM](https://www.sqlalchemy.org) does. You need to manually create classes corresponding to avro schemas. However, fields of the avro schemas are all extracted from `avsc` file instead of being manually defined like SQLAlchemy. The classes allow defining methods to introduce new properties or new validations. Please check the following examples for how to use the library.
 
-However, this library should be restricted to places where static types are required. You will loose all the happiness playing with Python if applying this library everywhere.
+The purpose of the library is to bridge the gap between dynamical typed python and the use cases that requires strong types. This library should be restricted to places where static types are required. Otherwise, you will loose all the happiness playing with Python if applying this library everywhere.
 
-**The project is still under development. Bugs are expected.**
 
 ## Example
 ### A Simple Example
@@ -97,6 +96,61 @@ date = Date({"year": 2018, "month": 12, "date": 99})
 # ValueError: day is out of range for month
 date = Date(datetime.date(2018, 12, 12))
 # No Error
+```
+
+### Extract an avro schema defined in an outer schema
+Sometimes an avro schema is defined in another schema
+**Employee.avsc**
+```
+{
+  "type": "record",
+  "name": "Employee",
+  "namespace": "com.test",
+  "fields": [
+    {
+      "name": "id"
+      "type": "string"
+    },
+    {
+      "name": "name",
+      "type": {
+        "type": "record",
+        "name": "Name",
+        "namespace": "com.test",
+        "fields": [
+          {
+            "name": "lastName",
+            "type": "string"
+          },
+          {
+            "name": "firstName",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+The schema `com.test.Name` is defined in `com.test.Employee`. There is no `Name.avsc`, but you can still define a class for it the schema:
+```
+# Parent schema must be define first.
+@avro_schema(
+    EXAMPLE_NAMES,
+    schema_file=os.path.join(DIRNAME, "Employee.avsc"))
+class Employee(object):
+    pass
+
+
+# Full name is required
+@avro_schema(EXAMPLE_NAMES, full_name="com.test.Name")
+class Name(object):
+    pass
+
+
+name = Name({{"firstName": "Alyssa", "lastName": "Yssa"})
+print(name)
+# {'firstName': 'Alyssa', 'lastName': 'Yssa'}
 ```
 
 ## Contributing

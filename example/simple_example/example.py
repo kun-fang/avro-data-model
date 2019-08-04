@@ -1,6 +1,7 @@
 import datetime
+import traceback
 
-from example_models import Date, User
+from example_models import Date, User, Name, Employee
 
 
 if __name__ == '__main__':
@@ -38,9 +39,17 @@ if __name__ == '__main__':
     }
     print(user)
 
-    user.birthday = {
-        'year': 2000,
-        'month': 12,
-        'day': 40
-    }
-    print(user)
+    try:
+        user.birthday = {
+            'year': 2000,
+            'month': 12,
+            'day': 40
+        }
+        print(user)
+    except:
+        traceback.print_exc()
+
+    name = Name({'firstName': 'Alyssa', 'lastName': 'Yssa'})
+    employee = Employee({"id": "1", "name": name.to_dict()})
+    print(name)
+    print(employee)

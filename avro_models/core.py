@@ -49,9 +49,9 @@ def avro_schema(container, **kwargs):
     schema_json = import_schema(container, **kwargs)
 
     def wrapper(cls):
-        existing_schema = (container.GetSchema(get_full_name(schema_json)).to_json()
+        existing_schema = (container.GetSchema(get_full_name(schema_json))
                            if isinstance(schema_json, dict) else None)
-        if existing_schema is not None and is_equal(dict(existing_schema), schema_json):
+        if existing_schema is not None and is_equal(dict(existing_schema.to_json()), schema_json):
             schema = existing_schema
         else:
             schema = SchemaFromJSONData(schema_json, container)
