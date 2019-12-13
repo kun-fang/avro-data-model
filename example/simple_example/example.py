@@ -50,6 +50,6 @@ if __name__ == '__main__':
         traceback.print_exc()
 
     name = Name({'firstName': 'Alyssa', 'lastName': 'Yssa'})
-    employee = Employee({"id": "1", "name": name.to_dict()})
+    employee = Employee({"id": "1", "name": name})
     print(name)
     print(employee)

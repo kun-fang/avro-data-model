@@ -11,3 +11,4 @@ def get_full_name(schema):
     namespace = schema.get("namespace", "")
     name = schema["name"]
     return name if '.' in name else '%s.%s' % (namespace, name)
+

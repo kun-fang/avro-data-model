@@ -9,12 +9,10 @@ class AvroComplexModel(object):
     _names = None
 
     def __init__(self, value):
-        if isinstance(value, self.__class__):
-            super().__setattr__("_value", value._value)
-        else:
-            if not self.validate(value):
-                raise AvroTypeException(self.__schema__, value)
-            super().__setattr__("_value", value)
+        dict_value = _recursive_to_dict(value)
+        if not self.validate(dict_value):
+            raise AvroTypeException(self.__schema__, value)
+        super().__setattr__("_value", dict_value)
 
     def __str__(self):
         return str(self._value)
@@ -217,3 +215,15 @@ def find_avro_model(schema, names):
         return names.get_avro_model(schema.fullname)
     else:
         return None
+
+
+def _recursive_to_dict(data):
+  if isinstance(data, dict):
+    return {key: _recursive_to_dict(data[key]) for key in data.keys()}
+  elif isinstance(data, list):
+    return [_recursive_to_dict(x) for x in data]
+  elif isinstance(data, AvroComplexModel):
+    return data.to_dict()
+  else:
+    return data
+
