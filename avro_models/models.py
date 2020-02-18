@@ -57,7 +57,7 @@ class RecordAvroModel(AvroComplexModel):
     def __getattr__(self, attr):
         field = self.__schema__.field_map[attr]
         item_class = find_avro_model(field.type, self._names)
-        return item_class(self._value[attr])
+        return self._value[attr] if item_class is None else item_class(self._value[attr])
 
     def __setattr__(self, attr, value):
         field = self.__schema__.field_map[attr]
