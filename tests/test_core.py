@@ -1,4 +1,4 @@
-from avro.schema import SchemaFromJSONData, Parse
+from avro.schema import SchemaFromJSONData, parse
 from io import StringIO
 import json
 import pytest
@@ -24,7 +24,7 @@ TEST_FILE_PATH = "/tmp/test/file"
 TEST_SCHEMA_FILE_CONTENT = json.dumps(TEST_SCHEMA)
 TEST_CLASS_NAME = "TestClass"
 TEST_OUTPUT_CLASS = type(TEST_CLASS_NAME, (models.AvroComplexModel,), {})
-TEST_AVRO_SCHEMA = Parse(TEST_SCHEMA_FILE_CONTENT)
+TEST_AVRO_SCHEMA = SchemaFromJSONData(TEST_SCHEMA)
 
 
 class WrapperClass(object):

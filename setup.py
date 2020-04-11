@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="avro_models",
-    version="0.0.5",
+    version="1.0.0",
     author="Kun Fang",
     author_email="kfang_anqing@yahoo.com",
     description="Object-relational mapping for AVRO schema",

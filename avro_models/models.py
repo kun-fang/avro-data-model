@@ -1,3 +1,4 @@
+# pylint: disable=no-member
 import json
 
 from avro.io import Validate, AvroTypeException
@@ -55,9 +56,7 @@ class RecordAvroModel(AvroComplexModel):
         return cls.__schema__.fields
 
     def __getattr__(self, attr):
-        field = self.__schema__.field_map[attr]
-        item_class = find_avro_model(field.type, self._names)
-        return self._value[attr] if item_class is None else item_class(self._value[attr])
+        return self._value[attr]
 
     def __setattr__(self, attr, value):
         field = self.__schema__.field_map[attr]
