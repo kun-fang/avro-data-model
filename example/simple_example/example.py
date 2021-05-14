@@ -25,6 +25,8 @@ if __name__ == '__main__':
     }
     user = User(data)
 
+    print(dir(user))
+
     print(user.fullname())
     print(repr(user))
     print(user.json_dumps())

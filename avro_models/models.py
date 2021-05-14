@@ -64,6 +64,9 @@ class RecordAvroModel(AvroComplexModel):
         item = item_class(value)
         self._value[attr] = item._value
 
+    def __dir__(self):
+      return dir(self.__class__) + [x.name for x in self.__class__.__schema__.fields]
+
 
 class ContainerAvroModel(AvroComplexModel):
 
